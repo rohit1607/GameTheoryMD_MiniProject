@@ -3,7 +3,7 @@ import numpy as np
 
 
 
-
+MAX_ITER = 10
 
 class probabilistic_serial:
 
@@ -20,6 +20,7 @@ class probabilistic_serial:
         self.pref_profile = { i:[ pref_matrix[i,j] for j in range(self.m) ]  for i in range(self.n)}
         self.eater_info = None
         self.n_eaters = None
+        self.method = None
     
     def get_eater_info(self):
         # eater_info will be an array with row entries of form [agent, pref]
@@ -47,10 +48,16 @@ class probabilistic_serial:
         print("self.n_eaters= ",self.n_eaters)
         return self.n_eaters
 
-    def eat(self):
+    def eat(self, time_left):
         fin_goods=[]
         times_reqd = np.array([self.supply[0,i]/self.n_eaters[0,i] for i in range(self.m) if self.supply[0,i]!=0 and self.n_eaters[0,i]!=0])
-        dt = np.min(times_reqd)
+       
+        if self.method == 'full':
+            dt = np.min(times_reqd)
+        if self.method == 'dt=1':
+            dt = np.min((np.min(times_reqd), time_left))
+            print("time left < min(times_reqd)", time_left, np.min(times_reqd))
+
         print("times_reqd=",times_reqd, times_reqd.shape)
         print("dt=",dt)
         nrows,_ =  self.eater_info.shape
@@ -69,33 +76,53 @@ class probabilistic_serial:
 
         return dt, self.allocations, self.supply
 
-    def run_algorithm(self):
+
+    def condition_satisfied(self, method, count, time_left):
+        if method == 'full':
+            return np.max(self.supply) > 0 and count<MAX_ITER
+
+        if method == 'dt=1':
+            return time_left > 0 and count<MAX_ITER
+
+
+    def run_algorithm(self, method='full'):
         count = 1
-        max_count = 5
-        while np.max(self.supply) > 0 and count<max_count:
+        time_left = 1
+        self.method = method
+        while self.condition_satisfied(method, count, time_left):
             print("\n\n count = ", count)
             print("self.supply=", self.supply)
             self.get_eater_info()
             self.count_eaters()
-            self.eat()
+            dt, _, _ = self.eat(time_left)
+            time_left -= dt
             count+=1
             print(self.allocations)
-        if np.max(self.supply) == 0:
+            print("time_left=" , time_left)
+
+        if method=='full' and np.max(self.supply) == 0:
             print("Allocation computed")
-        else:
+        if method=='dt=1' and time_left == 0:
+            print('Allocation computed for dt=1')
+        if count == MAX_ITER:
             print("Error: Max count exceed")
-        return self.allocations
+
+        return self.allocations, self.supply
 
 
 
-a = np.array([[1,2,3,4],
-            [1,3,2,4],
-            [3,4,2,1],
-            [4,3,2,1]],dtype=np.int)
-a = a-1
-print(a)
-# print(np.where(a>1))
-prob = probabilistic_serial(a)
-print(prob.pref_profile)
-allocation = prob.run_algorithm()
-print(allocation)
+# a = np.array([[1,2,3,4],
+#             [1,3,2,4],
+#             [3,4,2,1],
+#             [4,3,2,1]],dtype=np.int)
+
+# a = np.array([[1,2,3,4],
+#             [1,3,2,4]],dtype=np.int)
+# a = a-1
+# print(a)
+# # print(np.where(a>1))
+# prob = probabilistic_serial(a)
+# print(prob.pref_profile)
+# allocation, supply = prob.run_algorithm(method='dt=1')
+# print(allocation)
+# print(supply)
