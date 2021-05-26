@@ -10,19 +10,16 @@ The algorithm makes use of two key components:
 
 """
 
-
-
 import numpy as np
 from probabilistic_serial import probabilistic_serial
 from bvn import birkhoff_von_neumann_decomposition
 from scipy import stats
 
 
-def eating(M,prefs):
+def eating(prefs):
     """
     eating protocol. Uses probabilistic_serial.py
     Input:
-    M: list of available set of goods
     prefs: prefernce matrix as a numpy array
 
     Returns:
@@ -57,6 +54,7 @@ def sample_integral_allocation(ws, As):
     Bt = As[x]
     return Bt 
 
+
 def update_M_B(Bt, M, B):
     """
     updates M and B based on Bt
@@ -67,13 +65,14 @@ def update_M_B(Bt, M, B):
     M: list of set of available goods
     B: list of sets of assigned goods to agents
     """
-    n,m = Bt.shape
+    n,_ = Bt.shape
     for i in range(n):
         g = np.where(Bt[i,:]==1)[0][0]
         # print("g=", g)
         M.remove(g)
         B[i].add(g)
     return M, B
+
 
 def recursive_prob_serial(M, B, prefs):
     """
@@ -89,7 +88,7 @@ def recursive_prob_serial(M, B, prefs):
     n,m = prefs.shape
     for t in range(int(n/m)):
         print("t=",t)
-        X , _ = eating(M,prefs)
+        X , _ = eating(prefs)
         print("X=", X, type(X))
         results = birkhoff_von_neumann_decomposition(X)
         print(results)
@@ -131,6 +130,6 @@ if __name__ == "__main__":
     #     B: list of sets of assigned goods to agents
     B = [set() for i in range(n)]
 
-    
+
     B, M = recursive_prob_serial(M, B, prefs)
     print("Allocations to each agent:", B)
